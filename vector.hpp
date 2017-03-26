@@ -12,8 +12,8 @@ namespace fsx
     class vector
     {
         private:
-            long m_endIndex;
-            long m_beginIndex;
+            size_t m_endIndex;
+            size_t m_beginIndex;
             size_t m_capacity;
             T* m_array;
 
@@ -21,10 +21,10 @@ namespace fsx
             using iterator = fsx::iterator<T>;
 
             vector() :
-                m_endIndex(-1),
-                m_beginIndex(0),
-                m_capacity(5),
-                m_array(static_cast<T*>(::operator new(sizeof(T) * this->m_capacity)))
+                m_endIndex{},
+                m_beginIndex{},
+                m_capacity{5},
+                m_array{static_cast<T*>(::operator new(sizeof(T) * this->m_capacity))}
             {}
 
             const size_t& capacity() const noexcept
@@ -32,12 +32,12 @@ namespace fsx
                 return this->m_capacity;
             }
 
-            T& operator[](const unsigned int& index) const noexcept
+            T& operator[](size_t index) const noexcept
             {
                 return this->m_array[this->m_beginIndex + index];
             }
 
-            T& at(const unsigned int& index) const
+            T& at(size_t index) const
             {
                 return this->m_array[this->m_beginIndex + index];
             }
@@ -54,8 +54,8 @@ namespace fsx
                 {
                     this->resize(this->m_capacity * 2);
                 }
-                ++this->m_endIndex;
                 new(&this->m_array[this->m_endIndex]) T(std::forward<Args>(args)...);
+                ++this->m_endIndex;
             }
 
             template <typename... Args>
@@ -65,8 +65,8 @@ namespace fsx
                 {
                     this->resize(this->m_capacity * 2);
                 }
-                ++this->m_endIndex;
                 new(&this->m_array[this->m_endIndex]) T(std::forward<Args>(args)...);
+                ++this->m_endIndex;
             }
 
             T* data() const noexcept
@@ -81,7 +81,7 @@ namespace fsx
                     this->m_array[this->m_beginIndex + i].~T();
                 }
                 this->m_beginIndex = 0;
-                this->m_endIndex = -1;
+                this->m_endIndex = 0;
             }
 
             T& back() const noexcept
@@ -137,7 +137,7 @@ namespace fsx
 
             inline size_t size() const noexcept
             {
-                return this->m_endIndex - this->m_beginIndex + 1;
+                return this->m_endIndex - this->m_beginIndex;
             }
 
             fsx::iterator<T> erase(const fsx::iterator<T>& iterator)
@@ -157,25 +157,23 @@ namespace fsx
                 }
                 else
                 {
-                    if (index >= static_cast<size_t>(this->m_endIndex - this->m_beginIndex))
+                    if (index >= this->size())
                     {
                         --this->m_endIndex;
                         return fsx::iterator<T>(this, index, 0, 1);
                     }
-                    else
+
+                    size_t elements = this->size() - index;
+                    if (elements > 0)
                     {
-                        int elements = (this->m_endIndex - this->m_beginIndex - index);
-                        if (elements > 0)
-                        {
-                            memmove(
-                                &this->m_array[this->m_beginIndex + index],
-                                &this->m_array[this->m_beginIndex + index + 1],
-                                sizeof(T) * elements
-                            );
-                        }
-                        --this->m_endIndex;
-                        return fsx::iterator<T>(this, index + 1, 1, 0);
+                        memmove(
+                            &this->m_array[this->m_beginIndex + index],
+                            &this->m_array[this->m_beginIndex + index + 1],
+                            sizeof(T) * elements
+                        );
                     }
+                    --this->m_endIndex;
+                    return fsx::iterator<T>(this, index + 1, 1, 0);
                 }
             }
 
@@ -183,8 +181,8 @@ namespace fsx
             {
                 const auto& beginIndex = iterBegin.index();
                 const auto& endIndex = iterEnd.index();
-                size_t elementsToRemove = endIndex - beginIndex;
-                size_t elementsToMove = 0;
+                size_t elementsToRemove{endIndex - beginIndex};
+                size_t elementsToMove{};
 
                 for (size_t i = 0; i < elementsToRemove; ++i)
                 {
@@ -220,7 +218,7 @@ namespace fsx
                 }
             }
 
-            inline void reserve(const size_t& size) noexcept
+            inline void reserve(size_t size) noexcept
             {
                 if (size > this->m_capacity)
                 {
@@ -228,7 +226,7 @@ namespace fsx
                 }
             }
 
-            inline void resize(const size_t& size) noexcept
+            inline void resize(size_t size) noexcept
             {
                 if (size < this->size())
                 {
@@ -236,7 +234,7 @@ namespace fsx
                     memmove(tmp, &this->m_array[this->m_beginIndex], sizeof(T) * size);
                     ::operator delete(this->m_array);
                     this->m_array = tmp;
-                    this->m_endIndex = size - 1;
+                    this->m_endIndex = size;
                     this->m_beginIndex = 0;
                 }
                 else
